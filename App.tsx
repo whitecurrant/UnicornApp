@@ -17,6 +17,7 @@ import {
   Text,
   StatusBar,
 } from 'react-native';
+import { Input } from 'react-native-elements'
 
 import {
   Header,
@@ -30,40 +31,12 @@ const App = () => {
   return (
     <Fragment>
       <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
+      <SafeAreaView style={{flex: 1}}>
           <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
+            <Input label={'Email'} placeholder={'your.email@unicorn.land'} />
+            <Input label={'Password'} placeholder={'password'} secureTextEntry={true} />
+            <Input label={'Name'} placeholder={'Your name'} />
           </View>
-        </ScrollView>
       </SafeAreaView>
     </Fragment>
   );
@@ -74,7 +47,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lighter,
   },
   body: {
-    backgroundColor: Colors.white,
+    flex: 0.5,
+    justifyContent: 'space-around',
+    padding: 24,
   },
   sectionContainer: {
     marginTop: 32,
