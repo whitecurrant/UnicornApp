@@ -32,6 +32,8 @@ target 'UnicornApp' do
 
   pod 'RNGestureHandler', :path => '../node_modules/react-native-gesture-handler'
 
+  pod 'ReactNativeAudioToolkit', :path => '../node_modules/@react-native-community/audio-toolkit'
+
   target 'UnicornAppTests' do
     inherit! :search_paths
     # Pods for testing

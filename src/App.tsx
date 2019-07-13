@@ -35,7 +35,7 @@ const RootNavigator = createStackNavigator(
     [Routes.Main]: MainScene,
   },
   {
-    initialRouteName: Routes.Signup,
+    initialRouteName: Routes.Main,
     defaultNavigationOptions: {
       header: null,
     },
