@@ -35,17 +35,10 @@ const RootNavigator = createStackNavigator(
     [Routes.Main]: MainScene,
   },
   {
-    initialRouteName: Routes.Main,
+    initialRouteName: Routes.Signup,
     defaultNavigationOptions: {
       header: null,
     },
-    // cardStyle: {
-    //   backgroundColor: Colors.base5,
-    //   shadowOffset: {
-    //     height: 10,
-    //     width: -10,
-    //   },
-    // },
   },
 );
 const AppNavigator = createAppContainer(RootNavigator);

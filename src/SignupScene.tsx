@@ -22,13 +22,21 @@ const VALIDATION = {
     }
 }
 
+enum Mode {
+    LOGIN,
+    REGISTER
+}
+
 
 type State = {
+
+    mode: Mode;
     email?: string;
     password?: string;
     name?: string;
 
     isEmailInvalid?: boolean;
+    isPasswordFormatInvalid?: boolean;
     isPasswordInvalid?: boolean;
     isNameInvalid?: boolean;
 
@@ -40,26 +48,25 @@ const TYPING_VALIDATION_TIMEOUT = 500;
 
 export class SignupScene extends Component<NavigationScreenProps, State> {
 
-    state: State = {}
+    state: State = { mode: Mode.REGISTER }
 
     componentDidUpdate() {
         LayoutAnimation.easeInEaseOut();
     }
 
-
     checkEmailError = debounce(() =>
         this.setState(({ isEmailInvalid }) => ({ isEmailErrorVisible: isEmailInvalid })), TYPING_VALIDATION_TIMEOUT)
-    checkPasswordError = debounce(() => this.setState(({ isPasswordInvalid }) => ({ isPasswordErrorVisible: isPasswordInvalid })), TYPING_VALIDATION_TIMEOUT);
+    checkPasswordError = debounce(() => this.setState(({ isPasswordFormatInvalid, mode }) => ({ isPasswordErrorVisible: mode === Mode.REGISTER && isPasswordFormatInvalid })), TYPING_VALIDATION_TIMEOUT);
 
     checkNameError = debounce(() => this.setState(({ isNameInvalid }) => ({ isNameErrorVisible: isNameInvalid })), TYPING_VALIDATION_TIMEOUT);
 
     onEmailChange = (email: string) => this.setState({ email, isEmailInvalid: !VALIDATION.email.pattern.test(email), isEmailErrorVisible: false }, this.checkEmailError);
 
-    onPasswordChange = (password: string) => this.setState({ password, isPasswordInvalid: !VALIDATION.password.pattern.test(password), isPasswordErrorVisible: false }, this.checkPasswordError)
+    onPasswordChange = (password: string) => this.setState({ password, isPasswordFormatInvalid: !VALIDATION.password.pattern.test(password), isPasswordErrorVisible: false }, this.checkPasswordError)
 
     onNameChange = (name: string) => this.setState({ name, isNameInvalid: !VALIDATION.name.pattern.test(name), isNameErrorVisible: false }, this.checkNameError)
 
-    onRegister = () => {
+    onRegisterRequested = () => {
         this.props.navigation.navigate({
             routeName: Routes.Main,
             params: {
@@ -68,16 +75,36 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
         })
     }
 
+    onLoginRequested = () => {
+        this.props.navigation.navigate({
+            routeName: Routes.Main,
+            params: {
+                name: this.state.name
+            }
+        })
+    }
+
+    onLoginModeSelected = () => {
+        this.setState({ mode: Mode.LOGIN });
+    }
+
+    onRegisterModeSelected = () => {
+        this.setState({ mode: Mode.REGISTER });
+
+    }
+
     render() {
         const { email,
             password, name,
-            isEmailInvalid, isPasswordInvalid, isNameInvalid, isEmailErrorVisible,
-            isPasswordErrorVisible, isNameErrorVisible
+            isEmailInvalid, isPasswordFormatInvalid, isNameInvalid, isEmailErrorVisible,
+            isPasswordErrorVisible, isNameErrorVisible,
+            mode,
         } = this.state;
         const emailErrorMsg = isEmailErrorVisible ? VALIDATION.email.message : '';
         const passwordErrorMsg = isPasswordErrorVisible ? VALIDATION.password.message : '';
         const nameErrorMsg = isNameErrorVisible ? VALIDATION.name.message : '';
-        const registerDisabled = !email || !name || !password || isEmailInvalid || isNameInvalid || isPasswordInvalid;
+        const registerDisabled = !email || !name || !password || isEmailInvalid || isNameInvalid || isPasswordFormatInvalid;
+        const loginDisabled = !email || !password || isEmailInvalid;
         return (
             <SafeAreaView style={{ flex: 1 }}>
                 <KeyboardAvoidingView style={styles.body}>
@@ -92,7 +119,7 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
                     />
                     <Input
                         label={'Password'}
-                        placeholder={'password'}
+                        placeholder={'Your password'}
                         secureTextEntry={true}
                         value={password}
                         onChangeText={this.onPasswordChange}
@@ -101,30 +128,51 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
                         containerStyle={styles.input}
 
                     />
-                    <Input
-                        label={'Name'}
-                        placeholder={'Your name'}
-                        value={name}
-                        onChangeText={this.onNameChange}
-                        errorMessage={nameErrorMsg}
-                        errorStyle={styles.error}
-                        containerStyle={styles.input}
-                    />
-                    <Button title={'Register'}
-                        disabled={registerDisabled}
-                        onPress={this.onRegister}
-                        containerStyle={styles.buttonArea}
-                        buttonStyle={[styles.button, styles.buttonFilled]}
-                    />
+                    {mode === Mode.REGISTER &&
+                        <>
+                            <Input
+                                label={'Name'}
+                                placeholder={'Your name'}
+                                value={name}
+                                onChangeText={this.onNameChange}
+                                errorMessage={nameErrorMsg}
+                                errorStyle={styles.error}
+                                containerStyle={styles.input}
+                            />
+                            <Button title={'Register'}
+                                disabled={registerDisabled}
+                                onPress={this.onRegisterRequested}
+                                containerStyle={styles.buttonArea}
+                                buttonStyle={[styles.button, styles.buttonFilled]}
+                            />
+                            <Button title={'Login'}
+                                type="outline"
+                                onPress={this.onLoginModeSelected}
+                                containerStyle={styles.buttonArea}
+                                buttonStyle={styles.button}
+                                titleStyle={{ color: Colors.unicorn }}
+                            />
+                        </>
+                    }
+                    {mode === Mode.LOGIN &&
+                        <>
+                            <Button
+                                title={'Login'}
+                                disabled={loginDisabled}
+                                onPress={this.onLoginRequested}
+                                containerStyle={styles.buttonArea}
+                                buttonStyle={[styles.button, styles.buttonFilled]}
+                            />
+                            <Button
+                                title={'I don\'t have an account'}
+                                type="outline"
+                                onPress={this.onRegisterModeSelected}
+                                containerStyle={styles.buttonArea}
+                                buttonStyle={styles.button}
+                                titleStyle={{ color: Colors.unicorn }}
+                            />
+                        </>}
 
-                    <Button title={'Login'}
-                        type="outline"
-                        // disabled={registerDisabled} 
-                        onPress={this.onRegister}
-                        containerStyle={styles.buttonArea}
-                        buttonStyle={styles.button}
-                        titleStyle={{ color: Colors.unicorn }}
-                    />
                 </KeyboardAvoidingView>
             </SafeAreaView>)
     }

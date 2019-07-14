@@ -52,8 +52,6 @@ export class MainScene extends Component<Props, State> {
     }
 
     togglePlay = () => {
-        console.log('isplaying', this.player.isPlaying)
-
         this.player.playPause((error, paused) => {
             if (error) {
                 console.log('error', error)
@@ -61,14 +59,11 @@ export class MainScene extends Component<Props, State> {
                 return this.onStopped();
             }
             if (paused) {
-                console.log('stop animation');
                 this.unicornAnimation.stopAnimation();
             } else {
                 if (this.state.playback === PlaybackState.STOPPED) {
-                    console.log('restart animation');
                     this.restartAnimation();
                 } else {
-                    console.log('resume animation');
                     this.resumeAnimation()
                 }
             }
