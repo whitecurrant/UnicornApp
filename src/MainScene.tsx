@@ -1,22 +1,18 @@
 import { NativeModules } from 'react-native';
 import React, { Component } from 'react';
 import { Animated, Dimensions, Easing, SafeAreaView, StyleSheet, Text, View, Platform } from 'react-native';
-import { Button, colors, Icon } from 'react-native-elements';
+import { Button, Icon } from 'react-native-elements';
 import { NavigationActions, NavigationScreenProps, StackActions } from 'react-navigation';
 const Alert = NativeModules.NativeAlert;
 
-import {
-    MediaStates,
-    Player,
-    Recorder
-} from '@react-native-community/audio-toolkit';
+import { Player, } from '@react-native-community/audio-toolkit';
 import { Colors } from './Colors';
 import { Routes } from './Routes';
 
-
 const WINDOW_WIDTH = Dimensions.get('window').width;
-const UNICORNS_ANIM_WIDTH = 200;
-const UNICORNS_ANIM_PASS_DURATION = 7000;
+const UNICORNS_CONTAINER_WIDTH = 200;
+const ANIMATION_PASS_DURATION = 7000;
+const SONG_URI = 'https://www.dropbox.com/s/zrl1jsdk29qdv5r/Pink%20Fluffy%20Unicorns%20Dancing%20on%20Rainbows%20-%20Fluffle%20Puff%20.mp3?dl=1';
 
 type Props = NavigationScreenProps<{ name: string }>
 
@@ -26,16 +22,14 @@ enum PlaybackState {
     STOPPED
 }
 
-type State = {
-    playback: PlaybackState,
-}
+type State = { playback: PlaybackState }
 
 export class MainScene extends Component<Props, State> {
 
     state = { playback: PlaybackState.STOPPED }
-    player = new Player('https://www.dropbox.com/s/zrl1jsdk29qdv5r/Pink%20Fluffy%20Unicorns%20Dancing%20on%20Rainbows%20-%20Fluffle%20Puff%20.mp3?dl=1', { autoDestroy: false })
+    player = new Player(SONG_URI, { autoDestroy: false })
 
-    unicornAnimation = new Animated.Value(0);
+    animation = new Animated.Value(0);
     animationValue = 0;
 
     componentDidMount() {
@@ -44,22 +38,22 @@ export class MainScene extends Component<Props, State> {
             android: false
         })
         this.player.prepare();
-        this.unicornAnimation.addListener(({ value }) => this.animationValue = value)
+        this.animation.addListener(({ value }) => this.animationValue = value);
     }
 
     componentWillUnmount() {
         this.player.destroy();
+        this.animation.removeAllListeners();
+        this.animation.stopAnimation();
     }
 
     togglePlay = () => {
         this.player.playPause((error, paused) => {
             if (error) {
-                console.log('error', error)
-                // report playback error
                 return this.onStopped();
             }
             if (paused) {
-                this.unicornAnimation.stopAnimation();
+                this.animation.stopAnimation();
             } else {
                 if (this.state.playback === PlaybackState.STOPPED) {
                     this.restartAnimation();
@@ -73,8 +67,8 @@ export class MainScene extends Component<Props, State> {
     }
 
     onStopped = () => {
-        this.unicornAnimation.stopAnimation();
-        this.unicornAnimation.setValue(0);
+        this.animation.stopAnimation();
+        this.animation.setValue(0);
         this.setState({ playback: PlaybackState.STOPPED })
     }
 
@@ -82,17 +76,13 @@ export class MainScene extends Component<Props, State> {
 
     logout = () => {
         this.stop();
-        this.props.navigation.dispatch(StackActions.reset({
-            index: 0,
-            actions: [NavigationActions.navigate({ routeName: Routes.Signup })]
-        }))
-        Alert.show('You have been logged out');
+        this.props.navigation.reset([NavigationActions.navigate({ routeName: Routes.Signup })], 0);
+        Alert.show('You got logged out!');
     }
 
-
     resumeAnimation = () => {
-        const remaindingTime = UNICORNS_ANIM_PASS_DURATION - this.animationValue * UNICORNS_ANIM_PASS_DURATION;
-        Animated.timing(this.unicornAnimation, {
+        const remaindingTime = ANIMATION_PASS_DURATION - this.animationValue * ANIMATION_PASS_DURATION;
+        Animated.timing(this.animation, {
             duration: remaindingTime,
             toValue: 1,
             useNativeDriver: true,
@@ -101,9 +91,9 @@ export class MainScene extends Component<Props, State> {
     }
 
     restartAnimation = () => {
-        this.unicornAnimation.setValue(0);
-        Animated.loop(Animated.timing(this.unicornAnimation, {
-            duration: UNICORNS_ANIM_PASS_DURATION,
+        this.animation.setValue(0);
+        Animated.loop(Animated.timing(this.animation, {
+            duration: ANIMATION_PASS_DURATION,
             toValue: 1,
             useNativeDriver: true,
             easing: Easing.linear,
@@ -111,19 +101,22 @@ export class MainScene extends Component<Props, State> {
     }
 
     renderUnicorns = () => {
-        const translateX = this.unicornAnimation.interpolate({
+        const translateX = this.animation.interpolate({
             inputRange: [0, 1],
-            outputRange: [WINDOW_WIDTH, - UNICORNS_ANIM_WIDTH]
+            outputRange: [WINDOW_WIDTH, - UNICORNS_CONTAINER_WIDTH]
         })
         return (
-            <Animated.Text style={[styles.unicorns, { transform: [{ translateX }] }]}>
+            <Animated.Text
+                style={[styles.unicorns, { transform: [{ translateX }] }]}>
                 🦄 🦄 🦄
-        </Animated.Text>)
+            </Animated.Text>
+        );
     }
 
     render() {
         const name = this.props.navigation.getParam('name');
-        const toggleIcon = this.state.playback !== PlaybackState.PLAYING ? <Icon name={'play-circle-filled'} size={64} iconStyle={{ color: Colors.unicorn }} />
+        const toggleIcon = this.state.playback !== PlaybackState.PLAYING
+            ? <Icon name={'play-circle-filled'} size={64} iconStyle={{ color: Colors.unicorn }} />
             : <Icon name={'pause-circle-filled'} size={64} iconStyle={{ color: Colors.unicorn }} />
         return (
             <SafeAreaView style={{ flex: 1 }}>
@@ -133,25 +126,28 @@ export class MainScene extends Component<Props, State> {
                         <Button
                             buttonStyle={styles.controlButton}
                             onPress={this.togglePlay}
-                            icon={toggleIcon} />
+                            icon={toggleIcon}
+                        />
                         <Button
                             buttonStyle={[styles.controlButton, styles.stopButton]}
                             disabled={this.state.playback === PlaybackState.STOPPED}
                             disabledStyle={{ opacity: 0.5 }}
                             onPress={this.stop}
-                            icon={<Icon name={'stop'} size={36} iconStyle={{ color: 'white' }} />
-                            } />
-
+                            icon={
+                                <Icon
+                                    name={'stop'}
+                                    size={36}
+                                    iconStyle={{ color: 'white' }}
+                                />
+                            }
+                        />
                     </View>
                     {this.renderUnicorns()}
                 </View>
                 <Button title={'Logout'}
                     type='outline'
-                    // disabled={registerDisabled} 
                     onPress={this.logout}
-                    containerStyle={{
-                        marginHorizontal: 32,
-                    }}
+                    containerStyle={{ marginHorizontal: 32 }}
                     buttonStyle={{ borderColor: Colors.unicorn }}
                     titleStyle={{ color: Colors.unicorn }}
                 />
@@ -185,7 +181,7 @@ const styles = StyleSheet.create({
     },
     unicorns: {
         marginVertical: 16,
-        fontSize: 40, width: UNICORNS_ANIM_WIDTH,
+        fontSize: 40, width: UNICORNS_CONTAINER_WIDTH,
     },
     stopButton: {
         borderRadius: 48,

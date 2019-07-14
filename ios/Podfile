@@ -34,6 +34,8 @@ target 'UnicornApp' do
 
   pod 'ReactNativeAudioToolkit', :path => '../node_modules/@react-native-community/audio-toolkit'
 
+  pod 'RNKeychain', :path => '../node_modules/react-native-keychain'
+
   target 'UnicornAppTests' do
     inherit! :search_paths
     # Pods for testing

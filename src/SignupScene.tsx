@@ -1,11 +1,12 @@
 
 import React, { Component } from 'react';
-import { SafeAreaView, View, StyleSheet, LayoutAnimation, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView, Text, StyleSheet, LayoutAnimation, KeyboardAvoidingView } from 'react-native';
 import { Input, Button } from 'react-native-elements';
-import { NavigationScreenProps } from 'react-navigation';
+import { NavigationScreenProps, NavigationActions } from 'react-navigation';
 import { Routes } from './Routes';
 import { Colors } from './Colors';
 import { debounce } from 'lodash';
+import { registerUser, loginUser } from './AuthService';
 
 const VALIDATION = {
     email: {
@@ -14,19 +15,19 @@ const VALIDATION = {
     },
     password: {
         pattern: /^[a-zA-z0-9]{6,}$/,
-        message: 'At least 6 characters, letters or numbers',
+        message: 'At least 6 characters of letters or numbers',
     },
     name: {
         pattern: /^[a-zA-z]*$/,
-        message: 'Only letters allowed'
+        message: 'Only letters are allowed'
     }
 }
+const TYPING_VALIDATION_TIMEOUT = 800;
 
 enum Mode {
     LOGIN,
     REGISTER
 }
-
 
 type State = {
 
@@ -35,16 +36,17 @@ type State = {
     password?: string;
     name?: string;
 
-    isEmailInvalid?: boolean;
+    isEmailFormatInvalid?: boolean;
     isPasswordFormatInvalid?: boolean;
-    isPasswordInvalid?: boolean;
-    isNameInvalid?: boolean;
+    isNameFormatInvalid?: boolean;
 
     isEmailErrorVisible?: boolean;
     isPasswordErrorVisible?: boolean;
     isNameErrorVisible?: boolean;
+
+    authError?: string;
+
 }
-const TYPING_VALIDATION_TIMEOUT = 500;
 
 export class SignupScene extends Component<NavigationScreenProps, State> {
 
@@ -55,89 +57,125 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
     }
 
     checkEmailError = debounce(() =>
-        this.setState(({ isEmailInvalid }) => ({ isEmailErrorVisible: isEmailInvalid })), TYPING_VALIDATION_TIMEOUT)
-    checkPasswordError = debounce(() => this.setState(({ isPasswordFormatInvalid, mode }) => ({ isPasswordErrorVisible: mode === Mode.REGISTER && isPasswordFormatInvalid })), TYPING_VALIDATION_TIMEOUT);
+        this.setState(({ isEmailFormatInvalid }) => ({ isEmailErrorVisible: isEmailFormatInvalid })), TYPING_VALIDATION_TIMEOUT);
 
-    checkNameError = debounce(() => this.setState(({ isNameInvalid }) => ({ isNameErrorVisible: isNameInvalid })), TYPING_VALIDATION_TIMEOUT);
+    checkPasswordError = debounce(() => this.setState(({ isPasswordFormatInvalid, mode }) => ({
+        isPasswordErrorVisible: mode === Mode.REGISTER && isPasswordFormatInvalid
+    })), TYPING_VALIDATION_TIMEOUT);
 
-    onEmailChange = (email: string) => this.setState({ email, isEmailInvalid: !VALIDATION.email.pattern.test(email), isEmailErrorVisible: false }, this.checkEmailError);
+    checkNameError = debounce(() => this.setState(({ isNameFormatInvalid }) => ({
+        isNameErrorVisible: isNameFormatInvalid
+    })), TYPING_VALIDATION_TIMEOUT);
 
-    onPasswordChange = (password: string) => this.setState({ password, isPasswordFormatInvalid: !VALIDATION.password.pattern.test(password), isPasswordErrorVisible: false }, this.checkPasswordError)
+    onEmailChange = (email: string) => this.setState({
+        email,
+        isEmailFormatInvalid: !VALIDATION.email.pattern.test(email),
+        isEmailErrorVisible: false,
+        authError: undefined
+    }, this.checkEmailError);
 
-    onNameChange = (name: string) => this.setState({ name, isNameInvalid: !VALIDATION.name.pattern.test(name), isNameErrorVisible: false }, this.checkNameError)
+    onPasswordChange = (password: string) => this.setState({
+        password,
+        isPasswordFormatInvalid: !VALIDATION.password.pattern.test(password),
+        isPasswordErrorVisible: false,
+        authError: undefined
+    }, this.checkPasswordError)
+
+    onNameChange = (name: string) => this.setState({
+        name,
+        isNameFormatInvalid: !VALIDATION.name.pattern.test(name),
+        isNameErrorVisible: false
+    }, this.checkNameError)
 
     onRegisterRequested = () => {
-        this.props.navigation.navigate({
-            routeName: Routes.Main,
-            params: {
-                name: this.state.name
-            }
-        })
+        registerUser(this.state.name!, this.state.email!, this.state.password!)
+            .then(() =>
+                this.props.navigation.reset([NavigationActions.navigate({
+                    routeName: Routes.Main,
+                    params: {
+                        name: this.state.name
+                    }
+                })], 0)).catch((authError: string) => { this.setState({ authError }) })
     }
 
     onLoginRequested = () => {
-        this.props.navigation.navigate({
-            routeName: Routes.Main,
-            params: {
-                name: this.state.name
-            }
-        })
+        loginUser(this.state.email!, this.state.password!)
+            .then((name) =>
+                this.props.navigation.reset([NavigationActions.navigate({
+                    routeName: Routes.Main,
+                    params: { name }
+                })], 0)).catch((authError: string) => { this.setState({ authError }) })
     }
 
-    onLoginModeSelected = () => {
+    onLoginModeSelected = () =>
         this.setState({ mode: Mode.LOGIN });
-    }
 
-    onRegisterModeSelected = () => {
+    onRegisterModeSelected = () =>
         this.setState({ mode: Mode.REGISTER });
 
-    }
-
     render() {
-        const { email,
-            password, name,
-            isEmailInvalid, isPasswordFormatInvalid, isNameInvalid, isEmailErrorVisible,
-            isPasswordErrorVisible, isNameErrorVisible,
+        const {
+            email,
+            password,
+            name,
+            isEmailFormatInvalid,
+            isPasswordFormatInvalid,
+            isNameFormatInvalid,
+            isEmailErrorVisible,
+            isPasswordErrorVisible,
+            isNameErrorVisible,
             mode,
         } = this.state;
         const emailErrorMsg = isEmailErrorVisible ? VALIDATION.email.message : '';
         const passwordErrorMsg = isPasswordErrorVisible ? VALIDATION.password.message : '';
         const nameErrorMsg = isNameErrorVisible ? VALIDATION.name.message : '';
-        const registerDisabled = !email || !name || !password || isEmailInvalid || isNameInvalid || isPasswordFormatInvalid;
-        const loginDisabled = !email || !password || isEmailInvalid;
+        const registerDisabled = !email || !name || !password || isEmailFormatInvalid || isNameFormatInvalid || isPasswordFormatInvalid;
+        const loginDisabled = !email || !password || isEmailFormatInvalid;
+
         return (
             <SafeAreaView style={{ flex: 1 }}>
                 <KeyboardAvoidingView style={styles.body}>
                     <Input
                         label={'Email'}
-                        placeholder={'your.email@unicorn.land'}
+                        autoCompleteType={'email'}
+                        labelStyle={styles.label}
+                        placeholder={'your.email@parad.ise'}
                         onChangeText={this.onEmailChange}
                         value={email}
+                        inputStyle={styles.input}
                         errorMessage={emailErrorMsg}
                         errorStyle={styles.error}
-                        containerStyle={styles.input}
+                        containerStyle={styles.inputContainer}
                     />
                     <Input
+                        labelStyle={styles.label}
                         label={'Password'}
                         placeholder={'Your password'}
                         secureTextEntry={true}
                         value={password}
+                        inputStyle={styles.input}
                         onChangeText={this.onPasswordChange}
                         errorMessage={passwordErrorMsg}
                         errorStyle={styles.error}
-                        containerStyle={styles.input}
+                        containerStyle={styles.inputContainer}
 
                     />
+                    {this.state.authError && <Text
+                        style={[styles.error, { marginHorizontal: 4 }]}>
+                        {this.state.authError}
+                    </Text>}
                     {mode === Mode.REGISTER &&
                         <>
                             <Input
                                 label={'Name'}
+                                labelStyle={styles.label}
                                 placeholder={'Your name'}
                                 value={name}
+                                inputStyle={styles.input}
                                 onChangeText={this.onNameChange}
                                 errorMessage={nameErrorMsg}
                                 errorStyle={styles.error}
-                                containerStyle={styles.input}
+                                containerStyle={styles.inputContainer}
                             />
                             <Button title={'Register'}
                                 disabled={registerDisabled}
@@ -171,21 +209,23 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
                                 buttonStyle={styles.button}
                                 titleStyle={{ color: Colors.unicorn }}
                             />
-                        </>}
-
+                        </>
+                    }
                 </KeyboardAvoidingView>
             </SafeAreaView>)
     }
-
 }
 
 const styles = StyleSheet.create({
-    input: {
+    inputContainer: {
         marginVertical: 8,
+    },
+    input: {
+        fontSize: 13
     },
     error: {
         marginHorizontal: 0,
-        color: Colors.unicorn
+        color: 'tomato'
     },
     body: {
         flex: 1,
@@ -203,5 +243,11 @@ const styles = StyleSheet.create({
     },
     buttonFilled: {
         backgroundColor: Colors.unicorn,
+    },
+    label: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: Colors.unicorn,
+
     }
 });
