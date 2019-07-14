@@ -1,15 +1,17 @@
-import { View, Text, Animated, Dimensions, Easing, StyleSheet, SafeAreaView } from "react-native";
+import { NativeModules } from 'react-native';
 import React, { Component } from 'react';
-import { transform } from "@babel/core";
-import { Icon, colors, Button } from "react-native-elements";
-import { NavigationScreenProps } from "react-navigation";
+import { Animated, Dimensions, Easing, SafeAreaView, StyleSheet, Text, View, Platform } from 'react-native';
+import { Button, colors, Icon } from 'react-native-elements';
+import { NavigationActions, NavigationScreenProps, StackActions } from 'react-navigation';
+const Alert = NativeModules.NativeAlert;
 
 import {
+    MediaStates,
     Player,
-    Recorder,
-    MediaStates
+    Recorder
 } from '@react-native-community/audio-toolkit';
-import { Colors } from "./Colors";
+import { Colors } from './Colors';
+import { Routes } from './Routes';
 
 
 const WINDOW_WIDTH = Dimensions.get('window').width;
@@ -31,12 +33,16 @@ type State = {
 export class MainScene extends Component<Props, State> {
 
     state = { playback: PlaybackState.STOPPED }
-    player = new Player("https://www.dropbox.com/s/zrl1jsdk29qdv5r/Pink%20Fluffy%20Unicorns%20Dancing%20on%20Rainbows%20-%20Fluffle%20Puff%20.mp3?dl=1", { autoDestroy: false })
+    player = new Player('https://www.dropbox.com/s/zrl1jsdk29qdv5r/Pink%20Fluffy%20Unicorns%20Dancing%20on%20Rainbows%20-%20Fluffle%20Puff%20.mp3?dl=1', { autoDestroy: false })
 
     unicornAnimation = new Animated.Value(0);
     animationValue = 0;
 
     componentDidMount() {
+        this.player.looping = Platform.select({
+            ios: true,
+            android: false
+        })
         this.player.prepare();
         this.unicornAnimation.addListener(({ value }) => this.animationValue = value)
     }
@@ -78,6 +84,15 @@ export class MainScene extends Component<Props, State> {
     }
 
     stop = () => this.player.stop(this.onStopped);
+
+    logout = () => {
+        this.stop();
+        this.props.navigation.dispatch(StackActions.reset({
+            index: 0,
+            actions: [NavigationActions.navigate({ routeName: Routes.Signup })]
+        }))
+        Alert.show('You have been logged out');
+    }
 
 
     resumeAnimation = () => {
@@ -126,7 +141,8 @@ export class MainScene extends Component<Props, State> {
                             icon={toggleIcon} />
                         <Button
                             buttonStyle={[styles.controlButton, styles.stopButton]}
-
+                            disabled={this.state.playback === PlaybackState.STOPPED}
+                            disabledStyle={{ opacity: 0.5 }}
                             onPress={this.stop}
                             icon={<Icon name={'stop'} size={36} iconStyle={{ color: 'white' }} />
                             } />
@@ -134,6 +150,16 @@ export class MainScene extends Component<Props, State> {
                     </View>
                     {this.renderUnicorns()}
                 </View>
+                <Button title={'Logout'}
+                    type='outline'
+                    // disabled={registerDisabled} 
+                    onPress={this.logout}
+                    containerStyle={{
+                        marginHorizontal: 32,
+                    }}
+                    buttonStyle={{ borderColor: Colors.unicorn }}
+                    titleStyle={{ color: Colors.unicorn }}
+                />
             </SafeAreaView>
         );
     }
@@ -167,8 +193,6 @@ const styles = StyleSheet.create({
         fontSize: 40, width: UNICORNS_ANIM_WIDTH,
     },
     stopButton: {
-        // width: 56,
-        // height: 56,
         borderRadius: 48,
         backgroundColor: 'violet'
     }
