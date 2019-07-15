@@ -108,10 +108,10 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
     }
 
     onLoginModeSelected = () =>
-        this.setState({ mode: Mode.LOGIN });
+        this.setState({ mode: Mode.LOGIN, authError: undefined });
 
     onRegisterModeSelected = () =>
-        this.setState({ mode: Mode.REGISTER });
+        this.setState({ mode: Mode.REGISTER, authError: undefined });
 
     render() {
         const {
@@ -161,7 +161,7 @@ export class SignupScene extends Component<NavigationScreenProps, State> {
 
                     />
                     {this.state.authError && <Text
-                        style={[styles.error, { marginHorizontal: 4 }]}>
+                        style={[styles.error, { marginHorizontal: 6 }]}>
                         {this.state.authError}
                     </Text>}
                     {mode === Mode.REGISTER &&
